@@ -1,0 +1,1114 @@
+<style>
+  body {
+    background-image: url('https://gf1.geo.gfsrv.net/cdnc8/a70be772b78f27691516fa29654cef.jpg');
+  }
+
+
+  .resDiv {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, 1fr);
+    justify-items: center;
+    height:45px;
+  }
+  .costDivItem {
+    display: grid; grid-template-rows: 1fr; margin-top:5px; justify-items: center;
+  }
+
+  .technologyShort {
+    height:auto !important;
+    align-items: center;
+  }
+
+  #techs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 1fr;
+    grid-column-gap: 0px;
+    grid-row-gap: 10px;
+  }
+
+  .technologyInfo {
+    display: grid !important; grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1fr; justify-items: left;
+    width:30% !important;
+    align-items: center !important;
+  }
+
+  .technologyName {
+    display: flex;
+    align-items: center;
+  }
+
+  .technologyRow {
+    width:100% !important;
+  }
+
+  .lifeformTechnology {
+    width:100% !important;
+  }
+
+</style>
+
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <link rel="icon" href="lnxtabicon-01.png">
+  <meta charset="utf-8">
+  <title>Lifeform Calculator</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="jquery.csv.js"></script>
+  <script>
+    window.onload = function() {
+      var itemsLeft = document.getElementsByClassName("technologyInfo");
+      for (var i = 0; i < itemsLeft.length; i++) {
+        var iconTitleHTML = itemsLeft[i].innerHTML;
+        var newIconTitleDiv = `<div style="display: grid !important; grid-template-rows: 1fr; grid-template-columns: 50px 1fr; justify-items: left;">` + iconTitleHTML + `</div`;
+          itemsLeft[i].innerHTML = newIconTitleDiv;
+          var elem = document.createElement("div");
+          elem.class = "costDivItm";
+          elem.style = "display: grid; grid-template-columns: repeat(4, 1fr);";
+          elem.innerHTML = `
+          <label for="curLevelInput" style="display: flex; align-items: center;">Current level:</label>
+          <input type="text" id="curLevelInput_`+i +`" class="levelInput" name="curLevelInput" style="width:20px;" value="0">
+          <label for="targetLevelInput" style="display: flex; align-items: center;">Target level:</label>
+          <input type="text" id="targetLevelInput_` +i + `" class="levelInput" name="targetLevelInput" style="width:20px;" value="0">`;
+          itemsLeft[i].appendChild(elem);
+        }
+
+        var itemsRight = document.getElementsByClassName("technologyRow");
+        for (var i = 0; i < itemsRight.length; i++) {
+          itemsRight[i].innerHTML += `
+          <div class="technologyShort" style="display: block !important;">
+            <div class="costDivItem" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="resDiv">
+                <div class="resourceIcon metal"></div>
+                <div class="resVal" id="resMetal_`+ i +`">0</div>
+              </div>
+              <div class="resDiv">
+                <div class="resourceIcon crystal"></div>
+                <div class="resVal" id="resCrystal_`+ i +`">0</div>
+              </div>
+              <div class="resDiv">
+                <div class="resourceIcon deuterium"></div>
+                <div class="resVal" id="resDeut_`+ i +`">0</div>
+              </div>
+            </div></div>`;
+          }
+
+          $('input:text').click(
+              function(){
+                  $(this).val('');
+              });
+
+
+              $.fn.digits = function(){
+                  return this.each(function(){
+                      $(this).text( $(this).text().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1.") );
+                  })
+              }
+
+          $(function(){
+            var data;
+                $.ajax({
+                  type: "GET",
+                  url: "LFValues.csv",
+                  dataType: "text",
+                  success: function(response)
+                  {
+                    data = $.csv.toArrays(response);
+                    $('.levelInput').keyup(function() {
+                      var itemNumber = parseInt($(this).attr("id").split("_")[1]);
+                      var currentLevelInputId = '#curLevelInput_' + itemNumber;
+                      var targetLevelInputId = '#targetLevelInput_' + itemNumber;
+                      var currentLevelValue = parseInt($(currentLevelInputId).val());
+                      var targetLevelValue = parseInt($(targetLevelInputId).val());
+                      var metalTotalCost = 0;
+                      var crystalTotalCost = 0;
+                      var deutTotalCost = 0;
+
+                      var metalBaseCost = parseInt(data[itemNumber][0]);
+                      var crystalBaseCost = parseInt(data[itemNumber][1]);
+                      var deutBaseCost = parseInt(data[itemNumber][2]);
+                      var metalInc = parseFloat(data[itemNumber][3]);
+                      var crystalInc = parseFloat(data[itemNumber][4]);
+                      var deutInc = parseFloat(data[itemNumber][5]);
+
+                      if (targetLevelValue < 250 && currentLevelValue < targetLevelValue) {
+                      for (var i = currentLevelValue+1; i <= targetLevelValue; i++) {
+                        var metalCurrentCost = parseInt(Math.floor(metalBaseCost * i * metalInc**(i-1))) ? parseInt(Math.floor(metalBaseCost * i * metalInc**(i-1))) : 0;
+                        var crystalCurrentCost = parseInt(Math.floor(crystalBaseCost * i * crystalInc**(i-1))) ? parseInt(Math.floor(crystalBaseCost * i * crystalInc**(i-1))) : 0;
+                        var deutCurrentCost = parseInt(Math.floor(deutBaseCost * i * deutInc**(i-1))) ? parseInt(Math.floor(deutBaseCost * i * deutInc**(i-1))) : 0;
+                        metalTotalCost += metalCurrentCost;
+                        crystalTotalCost += crystalCurrentCost;
+                        deutTotalCost += deutCurrentCost;
+                      }
+
+                      if (metalBaseCost == 0 || Number.isSafeInteger(metalTotalCost)) {
+                        $('#resMetal_' + itemNumber.toString()).text(metalTotalCost).digits();
+                      }
+                      else {
+                        $('#resMetal_' + itemNumber.toString()).text('bruh pls.')
+                      }
+
+                      if (crystalBaseCost == 0 || Number.isSafeInteger(crystalTotalCost)) {
+                        $('#resCrystal_' + itemNumber.toString()).text(crystalTotalCost).digits();
+                      }
+                      else {
+                        $('#resCrystal_' + itemNumber.toString()).text('bruh pls.')
+                      }
+
+                      if (deutBaseCost == 0 || Number.isSafeInteger(deutTotalCost)) {
+                        $('#resDeut_' + itemNumber.toString()).text(deutTotalCost).digits();
+                      }
+                      else {
+                        $('#resDeut_' + itemNumber.toString()).text('bruh pls.')
+                      }
+                      }
+                    });
+                  }
+                });
+          });
+        }
+
+      </script>
+    </head>
+    <body>
+      <link rel="stylesheet" type="text/css" href="https://gf3.geo.gfsrv.net/cdned/4011cb1a7ddeccc653da066ef56758.css"/>
+      <div id="middle" style="width:100% !important;">
+
+        <div id="lfoverviewcomponent" class="maincontent" style="width:100% !important;">
+          <div id="netz" style="width:100% !important;">
+            <div id="lfsettings" style="width:100% !important;">
+              <div id="inhalt" style="width:100% !important;">
+                <div id="planet" class="planet-header " style="height:50px;">
+                  <h2>Lifeform Building/Research Cost Calculator</h2>
+                </div>
+                <div class="c-left "></div>
+                <div class="c-right "></div>
+                <div class="clearfloat"></div>
+                <div id="technologies" style="width:100% !important;">
+                  <h3>
+                    Lifeform Overview
+                  </h3>
+                  <div class="lfsettingsContent" style="width:100% !important;">
+
+                    <div class="lifeformTechnology lifeform1">
+                      <h1 data-category="buildingLifeform1">Human Buildings</h1>
+                      <div data-category="buildingLifeform1" style="display:none;">
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11101"></div>
+                            <div class="technologyName">Residential Sector</div>
+                          </div>
+                          <div class="technologyShort">The residential sector provides accommodation for T1 Humans. Each level increases the living space and growth rate on the planet.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11102"></div>
+                            <div class="technologyName">Biosphere Farm</div>
+                          </div>
+                          <div class="technologyShort">With each level, the expansion of the Biosphere Farm increases the storage capacity and amount of food produced per second.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11103"></div>
+                            <div class="technologyName">Research Centre</div>
+                          </div>
+                          <div class="technologyShort">The Research Centre unlocks the tech tree for Humans, and the costs and duration of research of new technologies decrease with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11104"></div>
+                            <div class="technologyName">Academy of Sciences</div>
+                          </div>
+                          <div class="technologyShort">At the Academy, T1 Humans are trained up into T2 Humans. Each level increases the number of trained individuals.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11105"></div>
+                            <div class="technologyName">Neuro-Calibration Centre</div>
+                          </div>
+                          <div class="technologyShort">T2 Humans are trained up into T3 Humans in the Neuro-Calibration Centre. Each level increases the number of trained individuals.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11106"></div>
+                            <div class="technologyName">High Energy Smelting</div>
+                          </div>
+                          <div class="technologyShort">High Energy Smelting increases the planet’s metal production with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11107"></div>
+                            <div class="technologyName">Food Silo</div>
+                          </div>
+                          <div class="technologyShort">The Food Silo makes it possible to distribute food more efficiently. Each level increases the maximum amount of food, reduces the food consumption of T1 Humans on this planet and increases the speed at which the number of T1, T2 and T3 Humans increases.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11108"></div>
+                            <div class="technologyName">Fusion-Powered Production</div>
+                          </div>
+                          <div class="technologyShort">Fusion-Powered Production increases crystal and deuterium production on the planet with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11109"></div>
+                            <div class="technologyName">Skyscraper</div>
+                          </div>
+                          <div class="technologyShort">The Skyscraper provides accommodation for numerous individuals. Each level increases the maximum number of Humans on the planet and the speed at which the number of T1, T2 and T3 Humans increases.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11110"></div>
+                            <div class="technologyName">Biotech Lab</div>
+                          </div>
+                          <div class="technologyShort">The Biotech Lab increases the planet’s food production with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11111"></div>
+                            <div class="technologyName">Metropolis</div>
+                          </div>
+                          <div class="technologyShort">The Metropolis improves all technologies on this planet.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11112"></div>
+                            <div class="technologyName">Planetary Shield</div>
+                          </div>
+                          <div class="technologyShort">The Planetary Shield protects some of the people on the planet in the event of an attack. The number of people protected increases with each level.</div>
+                        </div>
+                      </div>
+                      <h1 data-category="researchLifeform1">Human Research</h1>
+                      <div data-category="researchLifeform1" style="display:none;">
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11201"></div>
+                            <div class="technologyName">Intergalactic Envoys</div>
+                          </div>
+                          <div class="technologyShort">Intergalactic Envoys are capable of detecting extra-terrestrial civilisations. They also reduced the duration of exploration flights to detect other lifeforms in the Galaxy view with each level. However, exploration is not without danger, and ships are occasionally lost in the endeavour.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11202"></div>
+                            <div class="technologyName">High-Performance Extractors</div>
+                          </div>
+                          <div class="technologyShort">High-Performance Extractors increase the production of metal, crystals and deuterium on all planets with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11203"></div>
+                            <div class="technologyName">Fusion Drives</div>
+                          </div>
+                          <div class="technologyShort">This advancement in drive technology makes civilian ships faster.  Each level increases the speed.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11204"></div>
+                            <div class="technologyName">Stealth Field Generator</div>
+                          </div>
+                          <div class="technologyShort">Stealth Field Generators reduce the costs and duration of researching spy tech.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11205"></div>
+                            <div class="technologyName">Orbital Den</div>
+                          </div>
+                          <div class="technologyShort">A portion of the resource supplies will be stored here safe from plundering. The den increases the storage capacity.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11206"></div>
+                            <div class="technologyName">Research AI</div>
+                          </div>
+                          <div class="technologyShort">The Research AI allows research projects to be completed much faster. Each level increases the speed of research.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11207"></div>
+                            <div class="technologyName">High-Performance Terraformer</div>
+                          </div>
+                          <div class="technologyShort">The High-Performance Terraformer reduces the costs, energy required and duration of building the terraformer with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11208"></div>
+                            <div class="technologyName">Enhanced Production Technologies</div>
+                          </div>
+                          <div class="technologyShort">Enhanced Production Technologies increase the production of metal, crystals and deuterium on all planets with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11209"></div>
+                            <div class="technologyName">Light Fighter Mk II</div>
+                          </div>
+                          <div class="technologyShort">Researching the Light Fighter Mk II increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Light Fighters with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11210"></div>
+                            <div class="technologyName">Cruiser Mk II</div>
+                          </div>
+                          <div class="technologyShort">Researching the Cruiser Mk II increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Cruisers with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11211"></div>
+                            <div class="technologyName">Improved Lab Technology</div>
+                          </div>
+                          <div class="technologyShort">With Improved Lab Technology, research projects can be completed much faster. Each level increases the speed of research.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11212"></div>
+                            <div class="technologyName">Plasma Terraformer</div>
+                          </div>
+                          <div class="technologyShort">Researching the Plasma Terraformer reduces the costs, energy required and duration of building the terraformer with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11213"></div>
+                            <div class="technologyName">Low-Temperature Drives</div>
+                          </div>
+                          <div class="technologyShort">Low-Temperature Drives reduce the costs and duration of researching spy tech.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11214"></div>
+                            <div class="technologyName">Bomber Mk II</div>
+                          </div>
+                          <div class="technologyShort">Researching the Bomber Mk II increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Bombers with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11215"></div>
+                            <div class="technologyName">Destroyer Mk II</div>
+                          </div>
+                          <div class="technologyShort">Researching the Destroyer Mk II increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Destroyers with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11216"></div>
+                            <div class="technologyName">Battlecruiser Mk II</div>
+                          </div>
+                          <div class="technologyShort">Researching the Battlecruiser Mk II increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Battlecruisers with each level.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11217"></div>
+                            <div class="technologyName">Robot Assistants</div>
+                          </div>
+                          <div class="technologyShort">With Robot Assistants, research projects can be completed much faster. Each level increases the speed of research.</div>
+                        </div>
+                        <div class="technologyRow">
+                          <div class="technologyInfo">
+                            <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech11218"></div>
+                            <div class="technologyName">Supercomputer</div>
+                          </div>
+                          <div class="technologyShort">With the Supercomputer, astrophysics research projects can be completed much faster. Each level increases the speed of research.</div>
+                        </div>
+                      </div>
+                    </div>                </div>
+                    <div class="lfsettingsContent">
+
+                      <div class="lifeformTechnology lifeform2">
+                        <h1 data-category="buildingLifeform2">Rock’tal Buildings</h1>
+                        <div data-category="buildingLifeform2" style="display:none;">
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12101"></div>
+                              <div class="technologyName">Meditation Enclave</div>
+                            </div>
+                            <div class="technologyShort">The Meditation Enclave provides accommodation for T1 Rock’tal. Each level increases the living space and growth rate on the planet.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12102"></div>
+                              <div class="technologyName">Crystal Farm</div>
+                            </div>
+                            <div class="technologyShort">With each level, the expansion of the Crystal Farm increases the storage capacity and amount of food produced per second.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12103"></div>
+                              <div class="technologyName">Rune Technologium</div>
+                            </div>
+                            <div class="technologyShort">The Rune Technologium unlocks the tech tree for the Rock’tal, and the costs and duration of research of new technologies decreases with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12104"></div>
+                              <div class="technologyName">Rune Forge</div>
+                            </div>
+                            <div class="technologyShort">In the Rune Forge, T1 Rock’tal are reshaped into T2 Rock’tal. Each level increases the number of trained Rock’tal.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12105"></div>
+                              <div class="technologyName">Oriktorium</div>
+                            </div>
+                            <div class="technologyShort">At the Oriktorium, T2 Rock’tal are trained to become T3 Rock’tal. Each level increases the number of trained Rock’tal.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12106"></div>
+                              <div class="technologyName">Magma Forge</div>
+                            </div>
+                            <div class="technologyShort">The Magma Forge increases the planet’s metal production with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12107"></div>
+                              <div class="technologyName">Disruption Chamber</div>
+                            </div>
+                            <div class="technologyShort">The Disruption Chamber makes it possible to produce and distribute energy more efficiently. Each level increases energy production and reduces energy consumption on the planet.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12108"></div>
+                              <div class="technologyName">Megalith</div>
+                            </div>
+                            <div class="technologyShort">The Megalith reduces the costs and construction time for the construction of species-specific Rock’tal buildings with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12109"></div>
+                              <div class="technologyName">Crystal Refinery</div>
+                            </div>
+                            <div class="technologyShort">The Crystal Refinery increases the planet’s crystal production with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12110"></div>
+                              <div class="technologyName">Deuterium Synthesiser</div>
+                            </div>
+                            <div class="technologyShort">The Deuterium Synthesiser increases the production of deuterium on the planet with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12111"></div>
+                              <div class="technologyName">Mineral Research Centre</div>
+                            </div>
+                            <div class="technologyShort">The Mineral Research Centre reduces the construction costs for all resource production buildings with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12112"></div>
+                              <div class="technologyName">Advanced Recycling Plant</div>
+                            </div>
+                            <div class="technologyShort">The Advanced Recycling Plant makes it possible to gain resources from the debris field created following an attack. Each level increases the amount of resources gained.</div>
+                          </div>
+                        </div>
+                        <h1 data-category="researchLifeform2">Rock’tal Research</h1>
+                        <div data-category="researchLifeform2" style="display:none;">
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12201"></div>
+                              <div class="technologyName">Volcanic Batteries</div>
+                            </div>
+                            <div class="technologyShort">Volcanic Batteries increase the production of energy on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12202"></div>
+                              <div class="technologyName">Acoustic Scanning</div>
+                            </div>
+                            <div class="technologyShort">Researching Acoustic Scanning increases the crystal production on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12203"></div>
+                              <div class="technologyName">High Energy Pump Systems</div>
+                            </div>
+                            <div class="technologyShort">High Energy Pump Systems increase the production of deuterium on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12204"></div>
+                              <div class="technologyName">Cargo Hold Expansion (Civilian Ships)</div>
+                            </div>
+                            <div class="technologyShort">The Cargo Hold Expansion increases the cargo capacity of civilian ships on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12205"></div>
+                              <div class="technologyName">Magma-Powered Production</div>
+                            </div>
+                            <div class="technologyShort">Magma-Powered Production increases the production of metal, crystals and deuterium on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12206"></div>
+                              <div class="technologyName">Geothermal Power Plants</div>
+                            </div>
+                            <div class="technologyShort">Geothermal Power Plants increase the production of energy on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12207"></div>
+                              <div class="technologyName">Depth Sounding</div>
+                            </div>
+                            <div class="technologyShort">Researching Depth Sounding increases the metal production on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12208"></div>
+                              <div class="technologyName">Ion Crystal Enhancement (Heavy Fighter)</div>
+                            </div>
+                            <div class="technologyShort">Researching the Ion Crystal Enhancement increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Heavy Fighters with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12209"></div>
+                              <div class="technologyName">Improved Stellarator</div>
+                            </div>
+                            <div class="technologyShort">Researching the Improved Stellarator reduces the costs and research time of plasma technology with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12210"></div>
+                              <div class="technologyName">Hardened Diamond Drill Heads</div>
+                            </div>
+                            <div class="technologyShort">Hardened Diamond Drill Heads increase the metal production on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12211"></div>
+                              <div class="technologyName">Seismic Mining Technology</div>
+                            </div>
+                            <div class="technologyShort">Researching Seismic Mining Technology increases the crystal production on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12212"></div>
+                              <div class="technologyName">Magma-Powered Pump Systems</div>
+                            </div>
+                            <div class="technologyShort">Magma-Powered Pump Systems increase the production of deuterium on all planets with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12213"></div>
+                              <div class="technologyName">Ion Crystal Modules</div>
+                            </div>
+                            <div class="technologyShort">With each level, Ion Crystal Modules reduce the Crawler’s energy consumption and increase its efficiency.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12214"></div>
+                              <div class="technologyName">Optimised Silo Construction Method</div>
+                            </div>
+                            <div class="technologyShort">Researching the Optimised Silo Construction Method reduces the costs and research time of missile silos with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12215"></div>
+                              <div class="technologyName">Diamond Energy Transmitter</div>
+                            </div>
+                            <div class="technologyShort">Diamond Energy Transmitters reduce the costs and research time of energy technology with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12216"></div>
+                              <div class="technologyName">Obsidian Shield Reinforcement</div>
+                            </div>
+                            <div class="technologyShort">Researching the Obsidian Shield Reinforcement increases the structural integrity, shield strength as well as attack strength of defensive structures.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12217"></div>
+                              <div class="technologyName">Rune Shields</div>
+                            </div>
+                            <div class="technologyShort">Researching Rune Shields reduces the costs and duration of researching Armour Technology with each level.</div>
+                          </div>
+                          <div class="technologyRow">
+                            <div class="technologyInfo">
+                              <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech12218"></div>
+                              <div class="technologyName">Rock’tal Collector Enhancement</div>
+                            </div>
+                            <div class="technologyShort">The class bonuses as Collector increase with each level. All bonuses increase except:
+                              •	Overloading Crawlers
+                              •	Discount on acceleration (buildings)</div>
+                            </div>
+                          </div>
+                        </div>                </div>
+                        <div class="lfsettingsContent">
+
+                          <div class="lifeformTechnology lifeform3">
+                            <h1 data-category="buildingLifeform3">Mechas Buildings</h1>
+                            <div data-category="buildingLifeform3" style="display:none;">
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13101"></div>
+                                  <div class="technologyName">Assembly Line</div>
+                                </div>
+                                <div class="technologyShort">The Assembly Line provides accommodation for T1 Mechas. Each level increases the living space and growth rate on the planet.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13102"></div>
+                                  <div class="technologyName">Fusion Cell Factory</div>
+                                </div>
+                                <div class="technologyShort">With each level, the expansion of the Fusion Cell Factory increases the storage capacity and amount of food produced per second.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13103"></div>
+                                  <div class="technologyName">Robotics Research Centre</div>
+                                </div>
+                                <div class="technologyShort">The Robotics Research Centre unlocks the tech tree for Mechas, and the costs and duration for researching new technologies decreases with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13104"></div>
+                                  <div class="technologyName">Update Network</div>
+                                </div>
+                                <div class="technologyShort">T1 Mechas are trained up to become T2 Mechas via the Update Network. Each level increases the number of trained Mechas.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13105"></div>
+                                  <div class="technologyName">Quantum Computer Centre</div>
+                                </div>
+                                <div class="technologyShort">At the Quantum Computer Centre, T2 Mechas are trained up to become T3 Mechas. Each level increases the number of trained Mechas.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13106"></div>
+                                  <div class="technologyName">Automatised Assembly Centre</div>
+                                </div>
+                                <div class="technologyShort">The Automatised Assembly Centre reduces the construction time of ships.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13107"></div>
+                                  <div class="technologyName">High-Performance Transformer</div>
+                                </div>
+                                <div class="technologyShort">Each level of the High-Performance Transformer increases energy production on the planet as well as the technology bonus.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13108"></div>
+                                  <div class="technologyName">Microchip Assembly Line</div>
+                                </div>
+                                <div class="technologyShort">Improved microchips allow the Mechas to be more efficient. Each level increases food production on the planet and increases the speed at which the number of T1, T2 and T3 Mechas increases.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13109"></div>
+                                  <div class="technologyName">Production Assembly Hall</div>
+                                </div>
+                                <div class="technologyShort">New Mechas can now be assembled even faster in the production assembly hall. Each level increases the maximum number of Mechas on the planet and the speed at which the number of T1, T2 and T3 Mechas increases.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13110"></div>
+                                  <div class="technologyName">High-Performance Synthesiser</div>
+                                </div>
+                                <div class="technologyShort">The High-Performance Synthesiser increases the production of deuterium on the planet with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13111"></div>
+                                  <div class="technologyName">Chip Mass Production</div>
+                                </div>
+                                <div class="technologyShort">Chip Mass Production increases the technology bonus on this planet with every level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13112"></div>
+                                  <div class="technologyName">Nano Repair Bots</div>
+                                </div>
+                                <div class="technologyShort">Each level of Nano Repair Bots increases the number of ships which are left in the wreckage after a battle.</div>
+                              </div>
+                            </div>
+                            <h1 data-category="researchLifeform3">Mechas Research</h1>
+                            <div data-category="researchLifeform3" style="display:none;">
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13201"></div>
+                                  <div class="technologyName">Catalyser Technology</div>
+                                </div>
+                                <div class="technologyShort">Researching Catalyser Technology increases the production of deuterium on all planets with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13202"></div>
+                                  <div class="technologyName">Plasma Drive</div>
+                                </div>
+                                <div class="technologyShort">Researching the Plasma Drive increases the speed of all ships (excluding Deathstars) with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13203"></div>
+                                  <div class="technologyName">Efficiency Module</div>
+                                </div>
+                                <div class="technologyShort">The Efficiency Module decreases the fuel consumption of all ships with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13204"></div>
+                                  <div class="technologyName">Depot AI</div>
+                                </div>
+                                <div class="technologyShort">The Depot AI reduces the costs and construction time for the Alliance Depot with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13205"></div>
+                                  <div class="technologyName">General Overhaul (Light Fighter)</div>
+                                </div>
+                                <div class="technologyShort">The general overhaul of the Light Fighter increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Light Fighters with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13206"></div>
+                                  <div class="technologyName">Automated Transport Lines</div>
+                                </div>
+                                <div class="technologyShort">Researching Automated Transport Lines increases the production of metal, crystals and deuterium on all planets with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13207"></div>
+                                  <div class="technologyName">Improved Drone AI</div>
+                                </div>
+                                <div class="technologyShort">Improved Drone AI reduces the costs and research time of spy technology with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13208"></div>
+                                  <div class="technologyName">Experimental Recycling Technology</div>
+                                </div>
+                                <div class="technologyShort">Researching the Experimental Recycling Technology increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Recyclers with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13209"></div>
+                                  <div class="technologyName">General Overhaul (Cruiser)</div>
+                                </div>
+                                <div class="technologyShort">The general overhaul of the Cruiser increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Cruisers with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13210"></div>
+                                  <div class="technologyName">Slingshot Autopilot</div>
+                                </div>
+                                <div class="technologyShort">Researching the Slingshot Autopilot makes it possible to reclaim fuel when recalling the fleet. Each level increases the amount of fuel reclaimed.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13211"></div>
+                                  <div class="technologyName">High-Temperature Superconductors</div>
+                                </div>
+                                <div class="technologyShort">Researching High-Temperature Superconductors reduces the costs and research time of energy technology with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13212"></div>
+                                  <div class="technologyName">General Overhaul (Battleship)</div>
+                                </div>
+                                <div class="technologyShort">The general overhaul of the Battleship increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Battleships with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13213"></div>
+                                  <div class="technologyName">Artificial Swarm Intelligence</div>
+                                </div>
+                                <div class="technologyShort">Researching Artificial Swarm Intelligence increases the production of metal, crystals and deuterium on all planets with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13214"></div>
+                                  <div class="technologyName">General Overhaul (Battlecruiser)</div>
+                                </div>
+                                <div class="technologyShort">The general overhaul of the Battlecruiser increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Battlecruisers with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13215"></div>
+                                  <div class="technologyName">General Overhaul (Bomber)</div>
+                                </div>
+                                <div class="technologyShort">The general overhaul of the Bomber increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Bombers with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13216"></div>
+                                  <div class="technologyName">General Overhaul (Destroyer)</div>
+                                </div>
+                                <div class="technologyShort">The general overhaul of the Destroyer increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Destroyers with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13217"></div>
+                                  <div class="technologyName">Experimental Weapons Technology</div>
+                                </div>
+                                <div class="technologyShort">Researching Experimental Weapons Technology reduces the costs and research time of weapons technology with each level.</div>
+                              </div>
+                              <div class="technologyRow">
+                                <div class="technologyInfo">
+                                  <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech13218"></div>
+                                  <div class="technologyName">Mechan General Enhancement</div>
+                                </div>
+                                <div class="technologyShort">The class bonuses as General increase with each level. All bonuses increase except:
+                                  •	Small chance to immediately destroy a Deathstar once in a battle using a light fighter
+                                  •	Wreckage at attack (transport to starting planet)
+                                  •	Detailed fleet speed settings
+                                  •	Discount on acceleration (shipyard)</div>
+                                </div>
+                              </div>
+                            </div>                </div>
+                            <div class="lfsettingsContent">
+
+                              <div class="lifeformTechnology lifeform4">
+                                <h1 data-category="buildingLifeform4">Kaelesh Buildings</h1>
+                                <div data-category="buildingLifeform4" style="display:none;">
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14101"></div>
+                                      <div class="technologyName">Sanctuary</div>
+                                    </div>
+                                    <div class="technologyShort">The Sanctuary provides accommodation for T1 Kaelesh. Each level increases the living space and growth rate on the planet.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14102"></div>
+                                      <div class="technologyName">Antimatter Condenser</div>
+                                    </div>
+                                    <div class="technologyShort">With each level, the expansion of the Antimatter Condenser increases the storage capacity and amount of food produced per second.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14103"></div>
+                                      <div class="technologyName">Vortex Chamber</div>
+                                    </div>
+                                    <div class="technologyShort">The Vortex Chamber unlocks the tech tree for the Kaelesh, and the costs and duration of research of new technologies decreases with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14104"></div>
+                                      <div class="technologyName">Halls of Realisation</div>
+                                    </div>
+                                    <div class="technologyShort">Within the Halls of Realisation, T1 Kaelesh are trained up into T2 Kaelesh. Each level increases the number of trained Kaelesh.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14105"></div>
+                                      <div class="technologyName">Forum of Transcendence</div>
+                                    </div>
+                                    <div class="technologyShort">In the Forum of Transcendence, T2 Kaelesh are trained up into T3 Kaelesh. Each level increases the number of trained Kaelesh.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14106"></div>
+                                      <div class="technologyName">Antimatter Convector</div>
+                                    </div>
+                                    <div class="technologyShort">The Antimatter Convector reduces the food consumption on this planet.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14107"></div>
+                                      <div class="technologyName">Cloning Laboratory</div>
+                                    </div>
+                                    <div class="technologyShort">The Cloning Laboratory increases the speed at which the number of T1, T2 and T3 Kaelesh increases.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14108"></div>
+                                      <div class="technologyName">Chrysalis Accelerator</div>
+                                    </div>
+                                    <div class="technologyShort">Each level, the Chrysalis Accelerator increases the maximum number of Kaelesh on the planet and the speed at which the number of T1, T2 and T3 Kaelesh increases.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14109"></div>
+                                      <div class="technologyName">Bio Modifier</div>
+                                    </div>
+                                    <div class="technologyShort">The Bio Modifier increases the number of planet fields on the planet with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14110"></div>
+                                      <div class="technologyName">Psionic Modulator</div>
+                                    </div>
+                                    <div class="technologyShort">Each level of the Psionic Modulator reduces the requirements for all technology slots on the planet.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14111"></div>
+                                      <div class="technologyName">Ship Manufacturing Hall</div>
+                                    </div>
+                                    <div class="technologyShort">The Ship Manufacturing Hall reduces the construction time of ships with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14112"></div>
+                                      <div class="technologyName">Supra Refractor</div>
+                                    </div>
+                                    <div class="technologyShort">With each level, the Supra Refractor increases the chance of a moon being created around a planet, as well as the size of that moon (max. 9400).</div>
+                                  </div>
+                                </div>
+                                <h1 data-category="researchLifeform4">Kaelesh Research</h1>
+                                <div data-category="researchLifeform4" style="display:none">
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14201"></div>
+                                      <div class="technologyName">Heat Recovery</div>
+                                    </div>
+                                    <div class="technologyShort">Researching Heat Recovery decreases the fuel consumption of all ships with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14202"></div>
+                                      <div class="technologyName">Sulphide Process</div>
+                                    </div>
+                                    <div class="technologyShort">Researching the Sulphide Process increases the production of deuterium on all planets with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14203"></div>
+                                      <div class="technologyName">Psionic Network</div>
+                                    </div>
+                                    <div class="technologyShort">Strengthening the Psionic Network reduces the chance of losing ships on expeditions with every level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14204"></div>
+                                      <div class="technologyName">Telekinetic Tractor Beam</div>
+                                    </div>
+                                    <div class="technologyShort">Increases the number of ships which are found on expeditions.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14205"></div>
+                                      <div class="technologyName">Enhanced Sensor Technology</div>
+                                    </div>
+                                    <div class="technologyShort">Researching Enhanced Sensor Technology increases the amount of resources that can be earned on expeditions with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14206"></div>
+                                      <div class="technologyName">Neuromodal Compressor</div>
+                                    </div>
+                                    <div class="technologyShort">Researching the Neuromodal Compressor increases the cargo capacity of civilian ships on all planets with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14207"></div>
+                                      <div class="technologyName">Neuro-Interface</div>
+                                    </div>
+                                    <div class="technologyShort">With the Neuro-Interface, research projects can be completed much faster. Each level increases the speed of research.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14208"></div>
+                                      <div class="technologyName">Interplanetary Analysis Network</div>
+                                    </div>
+                                    <div class="technologyShort">Enhancing the Interplanetary Analysis Network increases the range of all phalanx scans.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14209"></div>
+                                      <div class="technologyName">Overclocking (Heavy Fighter)</div>
+                                    </div>
+                                    <div class="technologyShort">Overclocking the Heavy Fighter systems increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Heavy Fighters with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14210"></div>
+                                      <div class="technologyName">Telekinetic Drive</div>
+                                    </div>
+                                    <div class="technologyShort">Developing the Telekinetic Drive increases fleet speed on expeditions with every level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14211"></div>
+                                      <div class="technologyName">Sixth Sense</div>
+                                    </div>
+                                    <div class="technologyShort">Sharpening the Sixth Sense increases the amount of resources that can be earned on expeditions with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14212"></div>
+                                      <div class="technologyName">Psychoharmoniser</div>
+                                    </div>
+                                    <div class="technologyShort">Researching the Psychoharmoniser increases the production of metal, crystals and deuterium on all planets with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14213"></div>
+                                      <div class="technologyName">Efficient Swarm Intelligence</div>
+                                    </div>
+                                    <div class="technologyShort">Efficient Swarm Intelligence allows regular and lifeform research projects to be completed much faster. Each level increases the speed of research.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14214"></div>
+                                      <div class="technologyName">Overclocking (Large Cargo)</div>
+                                    </div>
+                                    <div class="technologyShort">Overclocking Large Cargo ships increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Largo Cargo ships with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14215"></div>
+                                      <div class="technologyName">Gravitation Sensors</div>
+                                    </div>
+                                    <div class="technologyShort">Gravitation Sensors increase the amount of Dark Matter that can be earned on expeditions with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14216"></div>
+                                      <div class="technologyName">Overclocking (Battleship)</div>
+                                    </div>
+                                    <div class="technologyShort">Overclocking the Battleship increases the structural integrity, shield strength, firepower, cargo capacity and basic speed of Battleships with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14217"></div>
+                                      <div class="technologyName">Psionic Shield Matrix</div>
+                                    </div>
+                                    <div class="technologyShort">Enhancing the Psionic Shield Matrix reduces the costs and research time of shield technology with each level.</div>
+                                  </div>
+                                  <div class="technologyRow">
+                                    <div class="technologyInfo">
+                                      <div class="icon lifeformsprite queuePic lifeformqueuetiny lifeformTech14218"></div>
+                                      <div class="technologyName">Kaelesh Discoverer Enhancement</div>
+                                    </div>
+                                    <div class="technologyShort">The class bonuses as Discoverer increase with each level. All bonuses increase except:
+                                      •	Debris fields created on expeditions are visible in the Galaxy view
+                                      •	Loot from inactive players
+                                      •	Discount on acceleration (research)</div>
+                                    </div>
+                                  </div>
+                                </div>                </div>
+                              </div>
+                              <script>
+                                $(".lifeformTechnology h1").click(function() {
+                                  $('.lifeformTechnology div[data-category="' + $(this).data("category") + '"]').slideToggle();
+                                });
+                              </script>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="siteFooter">
+            <div class="content" style="font-size:10px">
+                 <div class="fleft textLeft">
+                     <a class="homeLink" href="http://www.gameforge.com/" target="_blank">© 2022 Gameforge 4D GmbH. All rights reserved. all your base are belong to GF</a>
+                 </div>
+            </div>
+            <div style="display:none;">
+
+              <!-- Begin Web-Stat code v 7.0 -->
+<span id="wts2109693"></span>
+<script>var wts=document.createElement('script');wts.async=true;
+wts.src='https://app.ardalio.com/log7.js';document.head.appendChild(wts);
+wts.onload = function(){ wtslog7(2109693,2); };
+</script><noscript><a href="https://www.web-stat.com">
+<img src="https://app.ardalio.com/7/2/2109693.png"
+alt="Web-Stat site stats"></a></noscript>
+<!-- End Web-Stat code v 7.0 -->
+  </div>
+        </div>
+                  </body>
+                  </html>
